@@ -16,20 +16,20 @@ const state = {
 
 const categories = ["Health", "Fitness", "Study", "Work", "Personal", "Finance", "Other"];
 const iconMap = {
-  Book: "📖",
-  Run: "🏃",
-  Water: "💧",
-  Mind: "🧠",
-  Work: "💼",
-  Money: "💰",
-  Star: "⭐",
-  Fitness: "🏋️",
-  Meditation: "🧘",
-  Streak: "🔥",
-  Target: "🎯",
-  Sleep: "🌙",
-  Nutrition: "🍎",
-  Health: "❤️"
+  Book: "\u{1F4D6}",
+  Run: "\u{1F3C3}",
+  Water: "\u{1F4A7}",
+  Mind: "\u{1F9E0}",
+  Work: "\u{1F4BC}",
+  Money: "\u{1F4B0}",
+  Star: "\u{2B50}",
+  Fitness: "\u{1F3CB}",
+  Meditation: "\u{1F9D8}",
+  Streak: "\u{1F525}",
+  Target: "\u{1F3AF}",
+  Sleep: "\u{1F319}",
+  Nutrition: "\u{1F34E}",
+  Health: "\u{2764}"
 };
 
 const $ = (selector) => document.querySelector(selector);
