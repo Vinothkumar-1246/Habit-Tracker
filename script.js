@@ -42,6 +42,8 @@ function wireEvents() {
   $("#openLoginLink").addEventListener("click", () => showAuthForm("login"));
   $("#loginForm").addEventListener("submit", handleLogin);
   $("#registerForm").addEventListener("submit", handleRegister);
+  $("#guestLoginButton")?.addEventListener("click", handleGuestLogin);
+  $("#guestRegisterButton")?.addEventListener("click", handleGuestLogin);
   $("#logoutButton").addEventListener("click", logout);
   $("#headerLogoutButton").addEventListener("click", logout);
   $("#profileButton").addEventListener("click", toggleProfileMenu);
@@ -81,6 +83,18 @@ function showAuthForm(type) {
   clearMessages();
 }
 
+async function handleGuestLogin() {
+  const guestUser = {
+    id: "guest_user",
+    name: "Guest User",
+    identifier: "guest",
+    createdAt: new Date().toISOString()
+  };
+  localStorage.setItem(STORAGE.session, JSON.stringify({ userId: guestUser.id, user: guestUser, remember: true }));
+  await startDashboard(guestUser);
+  showToast("Welcome! Logged in as Guest.");
+}
+
 async function handleRegister(event) {
   event.preventDefault();
   const name = $("#registerName").value.trim();
@@ -95,13 +109,15 @@ async function handleRegister(event) {
   if (password !== confirmPassword) return setMessage(message, "Passwords do not match.");
 
   try {
-    await apiRequest("/api/register", {
+    const res = await apiRequest("/api/register", {
       method: "POST",
       body: { name, identifier, password }
     });
-    setMessage(message, "Account created successfully! You can log in now.", true);
+    const user = res.user || { id: `user_${Date.now()}`, name, identifier };
+    localStorage.setItem(STORAGE.session, JSON.stringify({ userId: user.id, user, remember: true }));
     $("#registerForm").reset();
-    setTimeout(() => showAuthForm("login"), 800);
+    await startDashboard(user);
+    showToast("Account created! Welcome to HabitFlow.");
   } catch (error) {
     setMessage(message, error.message);
   }
