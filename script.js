@@ -16,13 +16,20 @@ const state = {
 
 const categories = ["Health", "Fitness", "Study", "Work", "Personal", "Finance", "Other"];
 const iconMap = {
-  Book: "B",
-  Run: "R",
-  Water: "W",
-  Mind: "M",
-  Work: "T",
-  Money: "$",
-  Star: "*"
+  Book: "📖",
+  Run: "🏃",
+  Water: "💧",
+  Mind: "🧠",
+  Work: "💼",
+  Money: "💰",
+  Star: "⭐",
+  Fitness: "🏋️",
+  Meditation: "🧘",
+  Streak: "🔥",
+  Target: "🎯",
+  Sleep: "🌙",
+  Nutrition: "🍎",
+  Health: "❤️"
 };
 
 const $ = (selector) => document.querySelector(selector);
@@ -528,7 +535,7 @@ function renderHabitCard(habit) {
       </button>
       <div class="habit-checklist-main">
         <div class="habit-title">
-          <div class="habit-icon" aria-hidden="true">${escapeHTML(iconMap[habit.icon] || "*")}</div>
+          <div class="habit-icon" aria-hidden="true">${escapeHTML(iconMap[habit.icon] || habit.icon || "⭐")}</div>
           <div>
             <h4>${escapeHTML(habit.name)}</h4>
             <div class="habit-tags">

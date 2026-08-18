@@ -471,7 +471,8 @@ body.dark .topbar {
   place-items: center;
   border-radius: var(--radius);
   background: var(--card-strong);
-  font-weight: 900;
+  font-size: 1.35rem;
+  line-height: 1;
 }
 
 .habit-title {
