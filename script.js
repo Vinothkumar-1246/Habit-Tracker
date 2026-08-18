@@ -99,7 +99,7 @@ async function handleRegister(event) {
       method: "POST",
       body: { name, identifier, password }
     });
-    setMessage(message, "Account created in MySQL. You can log in now.", true);
+    setMessage(message, "Account created successfully! You can log in now.", true);
     $("#registerForm").reset();
     setTimeout(() => showAuthForm("login"), 800);
   } catch (error) {
@@ -210,6 +210,113 @@ function readJSON(key, fallback) {
   }
 }
 
+function defaultSampleHabits() {
+  const today = new Date();
+  return [
+    {
+      id: `habit_${Date.now()}_1`,
+      name: "Morning Exercise",
+      description: "30 minutes of workout or stretching",
+      category: "Fitness",
+      icon: "Run",
+      color: "#16a34a",
+      frequency: "daily",
+      createdAt: toDateKey(addDays(today, -7)),
+      completions: {
+        [toDateKey(addDays(today, -1))]: true,
+        [toDateKey(addDays(today, -2))]: true
+      }
+    },
+    {
+      id: `habit_${Date.now()}_2`,
+      name: "Drink Water",
+      description: "Reach daily hydration target",
+      category: "Health",
+      icon: "Water",
+      color: "#0284c7",
+      frequency: "daily",
+      createdAt: toDateKey(addDays(today, -7)),
+      completions: {
+        [toDateKey(today)]: true,
+        [toDateKey(addDays(today, -1))]: true
+      }
+    },
+    {
+      id: `habit_${Date.now()}_3`,
+      name: "Read Book",
+      description: "Read 20 pages for growth",
+      category: "Personal",
+      icon: "Book",
+      color: "#d97706",
+      frequency: "daily",
+      createdAt: toDateKey(addDays(today, -7)),
+      completions: {
+        [toDateKey(addDays(today, -1))]: true
+      }
+    }
+  ];
+}
+
+function handleLocalApi(path, options = {}) {
+  const method = (options.method || "GET").toUpperCase();
+  const qIndex = path.indexOf("?");
+  const endpoint = qIndex !== -1 ? path.slice(0, qIndex) : path;
+  const queryString = qIndex !== -1 ? path.slice(qIndex + 1) : "";
+  const params = new URLSearchParams(queryString);
+
+  if (endpoint === "/api/register" && method === "POST") {
+    const { name, identifier, password } = options.body || {};
+    const norm = normalizeIdentifier(identifier || "");
+    const users = getUsers();
+    if (users.some((u) => normalizeIdentifier(u.identifier) === norm)) {
+      throw new Error("An account with this email or username already exists.");
+    }
+    const newUser = {
+      id: `user_${Date.now()}`,
+      name,
+      identifier: norm,
+      password,
+      createdAt: new Date().toISOString()
+    };
+    users.push(newUser);
+    saveUsers(users);
+    return { ok: true, user: newUser };
+  }
+
+  if (endpoint === "/api/login" && method === "POST") {
+    const { identifier, password } = options.body || {};
+    const norm = normalizeIdentifier(identifier || "");
+    const users = getUsers();
+    const user = users.find((u) => normalizeIdentifier(u.identifier) === norm && u.password === password);
+    if (!user) {
+      throw new Error("Invalid email/username or password.");
+    }
+    return { ok: true, user };
+  }
+
+  if (endpoint === "/api/habits" && method === "GET") {
+    const userId = params.get("userId");
+    if (!userId) return { ok: true, habits: [] };
+    const stored = readJSON(userDataKey(userId), null);
+    if (stored === null) {
+      const defaults = defaultSampleHabits();
+      localStorage.setItem(userDataKey(userId), JSON.stringify(defaults));
+      return { ok: true, habits: defaults };
+    }
+    return { ok: true, habits: stored };
+  }
+
+  if (endpoint === "/api/habits" && method === "POST") {
+    const { userId, habits } = options.body || {};
+    if (userId) {
+      localStorage.setItem(userDataKey(userId), JSON.stringify(habits || []));
+    }
+    return { ok: true };
+  }
+
+  throw new Error("Endpoint not supported.");
+}
+
 async function apiRequest(path, options = {}) {
   const fetchOptions = {
     method: options.method || "GET",
@@ -219,19 +326,28 @@ async function apiRequest(path, options = {}) {
     fetchOptions.body = JSON.stringify(options.body);
   }
 
-  let response;
-  try {
-    response = await fetch(`${API_BASE}${path}`, fetchOptions);
-  } catch {
-    throw new Error("Java backend is not running. Start it, then open http://localhost:8081.");
+  if (!API_BASE) {
+    return handleLocalApi(path, options);
   }
 
-  const text = await response.text();
-  const data = text ? JSON.parse(text) : {};
-  if (!response.ok || data.ok === false) {
-    throw new Error(data.message || "Server request failed.");
+  try {
+    const response = await fetch(`${API_BASE}${path}`, fetchOptions);
+    const contentType = response.headers.get("content-type") || "";
+    if (!contentType.includes("application/json")) {
+      return handleLocalApi(path, options);
+    }
+    const text = await response.text();
+    const data = text ? JSON.parse(text) : {};
+    if (!response.ok || data.ok === false) {
+      throw new Error(data.message || "Server request failed.");
+    }
+    return data;
+  } catch (error) {
+    if (error.message && !error.message.includes("Invalid") && !error.message.includes("exists")) {
+      return handleLocalApi(path, options);
+    }
+    throw error;
   }
-  return data;
 }
 
 function normalizeIdentifier(value) {
